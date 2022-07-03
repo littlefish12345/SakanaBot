@@ -1,4 +1,4 @@
-module FishBot
+module github.com/littlefish12345/FishBot
 
 go 1.18
 
