@@ -16,6 +16,35 @@ func TlvEncode(typeId uint16, data []byte) []byte {
 	return append(Int16ToBytes(int16(typeId)), append(Int16ToBytes(int16(uint16(len(data)))), data...)...)
 }
 
+func TlvRead(data []byte, tagSizeBitNum int) map[uint16][]byte {
+	returnMap := make(map[uint16][]byte)
+	var pointer uint32
+	var typeId uint16
+	var tlvSize uint32
+	for {
+		if len(data)-int(pointer) < tagSizeBitNum {
+			return returnMap
+		}
+		if tagSizeBitNum == 1 {
+			typeId = uint16(data[pointer])
+			pointer += 1
+		} else if tagSizeBitNum == 2 {
+			typeId = uint16(BytesToInt16(data[pointer : pointer+2]))
+			pointer += 2
+		} else if tagSizeBitNum == 4 {
+			typeId = uint16(BytesToInt32(data[pointer : pointer+4]))
+			pointer += 4
+		}
+		if typeId == 255 {
+			return returnMap
+		}
+		tlvSize = uint32(BytesToInt16(data[pointer : pointer+2]))
+		pointer += 2
+		returnMap[typeId] = data[pointer : pointer+tlvSize]
+		pointer += tlvSize
+	}
+}
+
 func TlvType0x1Encode(uin uint32, ip []byte) []byte {
 	buffer := new(bytes.Buffer)
 	buffer.Write([]byte{0x00, 0x01}) //1*uint16
@@ -55,6 +84,10 @@ func TlvType0x100Encode(ssoVersion uint32, appId uint32, subAppId uint32, appCli
 	buffer.Write(Int32ToBytes(int32(appClientVersion)))
 	buffer.Write(Int32ToBytes(int32(mainSigmap)))
 	return TlvEncode(0x100, buffer.Bytes())
+}
+
+func TlvType0x104Encode(data []byte) []byte {
+	return TlvEncode(0x104, data)
 }
 
 func TlvType0x107Encode(picType uint16) []byte {
@@ -209,7 +242,7 @@ func TlvType0x124Encode(osType []byte, osVersion []byte, simInfo []byte, address
 		buffer.Write(simInfo[:16])
 	}
 	if len(address) <= 32 {
-		buffer.Write(Int16ToBytes(int16(uint16(len(simInfo)))))
+		buffer.Write(Int16ToBytes(int16(uint16(len(address)))))
 		buffer.Write(address)
 	} else {
 		buffer.Write(Int16ToBytes(32))
@@ -288,16 +321,6 @@ func TlvType0x147Encode(appId uint32, apkVersion []byte, apkSign []byte) []byte 
 	return TlvEncode(0x147, buffer.Bytes())
 }
 
-func TlvType0x187Encode(macAddress []byte) []byte {
-	hash := md5.Sum(macAddress)
-	return TlvEncode(0x187, hash[:])
-}
-
-func TlvType0x188Encode(androidId []byte) []byte {
-	hash := md5.Sum(androidId)
-	return TlvEncode(0x188, hash[:])
-}
-
 func TlvType0x154Encode(seqence uint16) []byte {
 	return TlvEncode(0x154, Int32ToBytes(int32(seqence)))
 }
@@ -315,8 +338,22 @@ func TlvType0x177Encode(buildTime uint32, sdkVersion string) []byte {
 	return TlvEncode(0x177, buffer.Bytes())
 }
 
+func TlvType0x187Encode(macAddress []byte) []byte {
+	hash := md5.Sum(macAddress)
+	return TlvEncode(0x187, hash[:])
+}
+
+func TlvType0x188Encode(androidId []byte) []byte {
+	hash := md5.Sum(androidId)
+	return TlvEncode(0x188, hash[:])
+}
+
 func TlvType0x191Encode(canWebVerify byte) []byte {
 	return TlvEncode(0x191, []byte{canWebVerify})
+}
+
+func TlvType0x193Encode(ticket string) []byte {
+	return TlvEncode(0x193, []byte(ticket))
 }
 
 func TlvType0x194Encode(imsiHash []byte) []byte {
@@ -383,6 +420,7 @@ func TlvType0x52DEncode(deviceInfo *DeviceInfo) []byte {
 		Incremental:  deviceInfo.Version.Incremental,
 		FingerPrint:  deviceInfo.FingerPrint,
 		BootId:       deviceInfo.BootId,
+		AndroidId:    deviceInfo.AndroidId,
 		BaseBand:     deviceInfo.BaseBand,
 		InnerVersion: deviceInfo.Version.Incremental,
 	})

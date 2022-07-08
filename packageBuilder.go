@@ -2,6 +2,7 @@ package FishBot
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 
 	goqqtea "github.com/littlefish12345/go-qq-tea"
@@ -132,6 +133,20 @@ func (qqClient *QQClient) BuildLoginPack() []byte {
 	bodyBuffer.Write(TlvType0x516Encode(0))
 	bodyBuffer.Write(TlvType0x521Encode(0))
 	bodyBuffer.Write(TlvType0x525Encode(TlvType0x536Encode([]byte{0x01, 0x00})))
+	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack)
+}
+
+func (qqClient *QQClient) BuildLoginSliderSendPack(ticket string) []byte {
+	seqence := qqClient.NextSeqence()
+	fmt.Println(seqence)
+	bodyBuffer := new(bytes.Buffer)
+	bodyBuffer.Write(Int16ToBytes(2)) //subCommandId
+	bodyBuffer.Write(Int16ToBytes(4)) //tlvNum
+	bodyBuffer.Write(TlvType0x193Encode(ticket))
+	bodyBuffer.Write(TlvType0x8Encode(2052))
+	bodyBuffer.Write(TlvType0x104Encode(qqClient.Token.TlvType0x104))
+	bodyBuffer.Write(TlvType0x116Encode(qqClient.Device.Protocol.Bitmap, qqClient.Device.Protocol.SubSigmap))
 	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
 	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack)
 }

@@ -1,7 +1,6 @@
 package FishBot
 
 import (
-	"fmt"
 	"math/rand"
 	"net"
 )
@@ -17,6 +16,8 @@ type QQClient struct {
 	PackageSequenceId *SafeInt32
 	SessionId         []byte
 	Ksid              []byte
+
+	Token *Token
 
 	ECDHKey   *ECDHKey
 	RandomKey []byte
@@ -35,6 +36,8 @@ func NewClient(uin int64, paswordHash [16]byte, device *DeviceInfo) (*QQClient, 
 	qqClient.SessionId = []byte{0x02, 0xB0, 0x5B, 0x8B}
 	qqClient.Ksid = []byte("|" + device.IMEI + "|A8.2.7.27f6ea96")
 
+	qqClient.Token = new(Token)
+
 	qqClient.ECDHKey = NewECDHKey()
 	qqClient.ECDHKey.GetPublicKey(qqClient.Uin)
 	qqClient.RandomKey = make([]byte, 16)
@@ -44,17 +47,4 @@ func NewClient(uin int64, paswordHash [16]byte, device *DeviceInfo) (*QQClient, 
 
 func (qqClient *QQClient) NextSeqence() uint16 {
 	return uint16(qqClient.PackageSequenceId.Add(1) & 0x7FFF)
-}
-
-func (qqClient *QQClient) Login() {
-	if !qqClient.Connected {
-		qqClient.connect()
-	}
-	qqClient.SendPack(qqClient.BuildLoginPack())
-	netpack, _ := qqClient.RecvPack()
-	responseType, encryptType, uin, seqence, returnCode, message, commandName, body, _ := qqClient.DecodeNetworkPack(netpack)
-	fmt.Println(responseType, encryptType, uin, seqence, returnCode, message, commandName, body)
-	command, uin, responsePackBody := qqClient.DecodeResponsePack(body)
-	fmt.Println(command, uin)
-	fmt.Println(responsePackBody)
 }

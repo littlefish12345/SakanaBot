@@ -3,6 +3,7 @@ package FishBot
 import (
 	"bytes"
 	"compress/zlib"
+	"fmt"
 	"io/ioutil"
 	"strconv"
 
@@ -62,6 +63,37 @@ func (qqClient *QQClient) DecodeResponsePack(data []byte) (uint16, int64, []byte
 	return uint16(command), uin, body
 }
 
-func (qqClient *QQClient) DecodeLoginResponse(data []byte) {
+func (qqClient *QQClient) DecodeLoginResponse(data []byte) *LoginResponse {
+	//subCommand := BytesToInt16(data[0:2])
+	status := data[2]
+	tlvMap := TlvRead(data[5:], 2)
+	fmt.Println(status)
+	fmt.Println(tlvMap)
+	if status == 2 {
+		qqClient.Token.TlvType0x104 = tlvMap[0x104]
+		if type0x192Data, ok := tlvMap[0x192]; ok {
+			return &LoginResponse{
+				Success:         false,
+				Error:           LoginResponseNeedSlider,
+				SliderVerifyUrl: string(type0x192Data),
+			}
+		}
+	}
 
+	if tlvType0x146Data, ok := tlvMap[0x146]; ok {
+		pointer := 4
+		titleLength := uint16(BytesToInt16(tlvType0x146Data[pointer : pointer+2]))
+		pointer += 2
+		//title := string(tlvType0x146Data[pointer : pointer+int(titleLength)])
+		pointer += int(titleLength)
+		messageLength := uint16(BytesToInt16(tlvType0x146Data[pointer : pointer+2]))
+		pointer += 2
+		message := string(tlvType0x146Data[pointer : pointer+int(messageLength)])
+		return &LoginResponse{
+			Success: false,
+			Error:   LoginResponseOtherError,
+			Message: message,
+		}
+	}
+	return nil
 }

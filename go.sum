@@ -15,6 +15,10 @@ github.com/littlefish12345/go-qq-tea v0.0.0-20220610145758-d2d38e5ed6de h1:UUofr
 github.com/littlefish12345/go-qq-tea v0.0.0-20220610145758-d2d38e5ed6de/go.mod h1:QTruU5Q69H55hRf9v4jjMr8yQpJQYQftYkuI8Cr9lTk=
 github.com/littlefish12345/go-qq-tea v0.0.0-20220610163936-19cb6f017b00 h1:hyO3M0u1/Zmr2i+vxpqA8vWtZjy5QkE+Radc89Y4Ig0=
 github.com/littlefish12345/go-qq-tea v0.0.0-20220610163936-19cb6f017b00/go.mod h1:QTruU5Q69H55hRf9v4jjMr8yQpJQYQftYkuI8Cr9lTk=
+github.com/littlefish12345/simpwebserv v1.7.1 h1:BDeYJxBRbbU1c5/eP8UsRfDOUyNTW6a84xcr8Wphs6E=
+github.com/littlefish12345/simpwebserv v1.7.1/go.mod h1:Z4oU33tlSSh00GIAR9Lzew9U5eLSnKKiDIQqM54U1SE=
+github.com/littlefish12345/simpwebserv v1.7.2 h1:zYkxiik1cUAAHJdI9b4RAlaIMdsrdj1BIp+50jvMPgA=
+github.com/littlefish12345/simpwebserv v1.7.2/go.mod h1:Z4oU33tlSSh00GIAR9Lzew9U5eLSnKKiDIQqM54U1SE=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
