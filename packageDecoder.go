@@ -13,7 +13,18 @@ import (
 	goqqtea "github.com/littlefish12345/go-qq-tea"
 )
 
-func (qqClient *QQClient) DecodeNetworkPack(data []byte) (uint32, byte, int64, uint16, int32, string, string, []byte, error) { //responseType encryptType uin seqence returnCode message commandName body
+type NetworkPackStruct struct {
+	ResponseType uint32
+	EncryptType  byte
+	Uin          int64
+	Seqence      uint16
+	ReturnCode   int32
+	Message      string
+	CommandName  string
+	Body         []byte
+}
+
+func (qqClient *QQClient) DecodeNetworkPack(data []byte) (*NetworkPackStruct, error) { //responseType encryptType uin seqence returnCode message commandName body
 	responseType := BytesToInt32(data[0:4])
 	encryptType := data[4]
 	uinLenght := BytesToInt32(data[6:10]) - 4
@@ -27,7 +38,7 @@ func (qqClient *QQClient) DecodeNetworkPack(data []byte) (uint32, byte, int64, u
 
 	headLength := BytesToInt32(ssoPackData[0:4]) - 4
 	if headLength < 4 || headLength > int32(len(ssoPackData)+4) {
-		return 0, 0, 0, 0, 0, "", "", nil, ErrorPackLengthError
+		return nil, ErrorPackLengthError
 	}
 	head := ssoPackData[4 : 4+headLength]
 	seqence := BytesToInt32(head[0:4])
@@ -48,7 +59,16 @@ func (qqClient *QQClient) DecodeNetworkPack(data []byte) (uint32, byte, int64, u
 		body, _ = ioutil.ReadAll(bodyCompressReader)
 		bodyCompressReader.Close()
 	}
-	return uint32(responseType), encryptType, uin, uint16(seqence), returnCode, message, commandName, body, nil
+	return &NetworkPackStruct{
+		ResponseType: uint32(responseType),
+		EncryptType:  encryptType,
+		Uin:          uin,
+		Seqence:      uint16(seqence),
+		ReturnCode:   returnCode,
+		Message:      message,
+		CommandName:  commandName,
+		Body:         body,
+	}, nil
 }
 
 func (qqClient *QQClient) DecodeResponsePack(data []byte) (uint16, int64, []byte) { //command uin body
@@ -64,6 +84,11 @@ func (qqClient *QQClient) DecodeResponsePack(data []byte) (uint16, int64, []byte
 		body = goqqtea.NewTeaCipher(qqClient.ECDHKey.ShareKey).Decrypt(body)
 	}
 	return uint16(command), uin, body
+}
+
+func (qqClient *QQClient) DecodeLoginResponseNetworkPack(netpackStruct *NetworkPackStruct) *LoginResponse {
+	_, _, responsePackBody := qqClient.DecodeResponsePack(netpackStruct.Body)
+	return qqClient.DecodeLoginResponse(responsePackBody)
 }
 
 func (qqClient *QQClient) DecodeLoginResponse(data []byte) *LoginResponse {
@@ -84,6 +109,16 @@ func (qqClient *QQClient) DecodeLoginResponse(data []byte) *LoginResponse {
 		qqClient.Token.TlvType0x402Data = tlvType0x402Data
 		hash := md5.Sum(append(qqClient.Device.Guid, append(qqClient.Token.Dpwd, qqClient.Token.TlvType0x402Data...)...))
 		qqClient.Token.G = hash[:]
+	}
+
+	if status == 0 {
+		if TlvType0x403Data, ok := tlvMap[0x403]; ok {
+			qqClient.Token.RansSeed = TlvType0x403Data
+		}
+		qqClient.DecodeLoginResponseSuccessTlv(tlvMap[0x119])
+		return &LoginResponse{
+			Success: true,
+		}
 	}
 
 	if status == 2 {
@@ -116,6 +151,13 @@ func (qqClient *QQClient) DecodeLoginResponse(data []byte) *LoginResponse {
 				Error:   LoginResponseNeedSMS,
 			}
 		}
+	}
+
+	if status == 204 {
+		qqClient.Token.TlvType0x104Data = tlvMap[0x104]
+		qqClient.Token.RansSeed = tlvMap[0x403]
+		netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildLoginDeviceLockPack()))
+		return qqClient.DecodeLoginResponseNetworkPack(netpack)
 	}
 
 	if tlvType0x146Data, ok := tlvMap[0x146]; ok {

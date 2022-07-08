@@ -2,7 +2,6 @@ package FishBot
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 
 	goqqtea "github.com/littlefish12345/go-qq-tea"
@@ -102,7 +101,7 @@ func (qqClient *QQClient) BuildNetworkPack(requestType uint32, encryptType byte,
 	return append(Int32ToBytes(int32(uint32(headBuffer.Len()+4))), headBuffer.Bytes()...)
 }
 
-func (qqClient *QQClient) BuildLoginPack() []byte {
+func (qqClient *QQClient) BuildLoginPack() ([]byte, uint16) {
 	seqence := qqClient.NextSeqence()
 	bodyBuffer := new(bytes.Buffer)
 	bodyBuffer.Write(Int16ToBytes(9))  //subCommandId
@@ -134,12 +133,11 @@ func (qqClient *QQClient) BuildLoginPack() []byte {
 	bodyBuffer.Write(TlvType0x521Encode(0))
 	bodyBuffer.Write(TlvType0x525Encode(TlvType0x536Encode([]byte{0x01, 0x00})))
 	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
-	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack)
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack), seqence
 }
 
-func (qqClient *QQClient) BuildLoginSliderSendPack(ticket string) []byte {
+func (qqClient *QQClient) BuildLoginSliderSendPack(ticket string) ([]byte, uint16) {
 	seqence := qqClient.NextSeqence()
-	fmt.Println(seqence)
 	bodyBuffer := new(bytes.Buffer)
 	bodyBuffer.Write(Int16ToBytes(2)) //subCommandId
 	bodyBuffer.Write(Int16ToBytes(4)) //tlvNum
@@ -148,12 +146,11 @@ func (qqClient *QQClient) BuildLoginSliderSendPack(ticket string) []byte {
 	bodyBuffer.Write(TlvType0x104Encode(qqClient.Token.TlvType0x104Data))
 	bodyBuffer.Write(TlvType0x116Encode(qqClient.Device.Protocol.Bitmap, qqClient.Device.Protocol.SubSigmap))
 	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
-	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack)
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack), seqence
 }
 
-func (qqClient *QQClient) BuildLoginSMSRequestPack() []byte {
+func (qqClient *QQClient) BuildLoginSMSRequestPack() ([]byte, uint16) {
 	seqence := qqClient.NextSeqence()
-	fmt.Println(seqence)
 	bodyBuffer := new(bytes.Buffer)
 	bodyBuffer.Write(Int16ToBytes(8)) //subCommandId
 	bodyBuffer.Write(Int16ToBytes(6)) //tlvNum
@@ -164,12 +161,11 @@ func (qqClient *QQClient) BuildLoginSMSRequestPack() []byte {
 	bodyBuffer.Write(TlvType0x17AEncode(9))
 	bodyBuffer.Write(TlvType0x197Encode([]byte{0x00}))
 	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
-	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack)
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack), seqence
 }
 
-func (qqClient *QQClient) BuildLoginSMSSubmitPack(SMSCode string) []byte {
+func (qqClient *QQClient) BuildLoginSMSSubmitPack(SMSCode string) ([]byte, uint16) {
 	seqence := qqClient.NextSeqence()
-	fmt.Println(seqence)
 	bodyBuffer := new(bytes.Buffer)
 	bodyBuffer.Write(Int16ToBytes(7)) //subCommandId
 	bodyBuffer.Write(Int16ToBytes(7)) //tlvNum
@@ -181,5 +177,18 @@ func (qqClient *QQClient) BuildLoginSMSSubmitPack(SMSCode string) []byte {
 	bodyBuffer.Write(TlvType0x401Encode(qqClient.Token.G))
 	bodyBuffer.Write(TlvType0x198Encode())
 	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
-	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack)
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack), seqence
+}
+
+func (qqClient *QQClient) BuildLoginDeviceLockPack() ([]byte, uint16) {
+	seqence := qqClient.NextSeqence()
+	bodyBuffer := new(bytes.Buffer)
+	bodyBuffer.Write(Int16ToBytes(20)) //subCommandId
+	bodyBuffer.Write(Int16ToBytes(4))  //tlvNum
+	bodyBuffer.Write(TlvType0x8Encode(2052))
+	bodyBuffer.Write(TlvType0x104Encode(qqClient.Token.TlvType0x104Data))
+	bodyBuffer.Write(TlvType0x116Encode(qqClient.Device.Protocol.Bitmap, qqClient.Device.Protocol.SubSigmap))
+	bodyBuffer.Write(TlvType0x401Encode(qqClient.Token.G))
+	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack), seqence
 }

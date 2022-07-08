@@ -158,14 +158,8 @@ func GetSliderTicket() string {
 
 func (qqClient *QQClient) SubmitSliderTicket(ticket string) *LoginResponse {
 	if !qqClient.Connected {
-		qqClient.connect()
+		qqClient.Connect()
 	}
-	qqClient.SendPack(qqClient.BuildLoginSliderSendPack(ticket))
-	netpack, _ := qqClient.RecvPack()
-	responseType, encryptType, uin, seqence, returnCode, message, commandName, body, _ := qqClient.DecodeNetworkPack(netpack)
-	fmt.Println(responseType, encryptType, uin, seqence, returnCode, message, commandName, body)
-	command, uin, responsePackBody := qqClient.DecodeResponsePack(body)
-	fmt.Println(command, uin)
-	fmt.Println(responsePackBody)
-	return qqClient.DecodeLoginResponse(responsePackBody)
+	netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildLoginSliderSendPack(ticket)))
+	return qqClient.DecodeLoginResponseNetworkPack(netpack)
 }

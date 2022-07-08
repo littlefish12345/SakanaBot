@@ -21,9 +21,11 @@ type ECDHKey struct {
 const serverPublicKey = "04EBCA94D733E399B2DB96EACDD3F69A8BB0F74224E2B44E3357812211D2E62EFBC91BB553098E25E33A799ADC7F76FEB208DA7C6522CDB0719A305180CC54A82E"
 
 func NewECDHKey() *ECDHKey {
-	return &ECDHKey{
+	ECDH := &ECDHKey{
 		ServerPublicKeyVersion: 1,
 	}
+	ECDH.LoadKey(serverPublicKey)
+	return ECDH
 }
 
 func (key *ECDHKey) LoadKey(publicKeyString string) {

@@ -3,13 +3,16 @@ package FishBot
 import (
 	"math/rand"
 	"net"
+	"sync"
 )
 
 type QQClient struct {
-	Uin           int64
-	PaswordHash   [16]byte
-	Device        *DeviceInfo
-	SsoServerList []SsoServerInfoStruct
+	Uin                        int64
+	PaswordHash                [16]byte
+	Device                     *DeviceInfo
+	SsoServerList              []SsoServerInfoStruct
+	ResponsePackNotHandledMap  sync.Map
+	ResponsePackWaitChannelMap sync.Map
 
 	Connected         bool
 	Conn              net.Conn
@@ -17,10 +20,15 @@ type QQClient struct {
 	SessionId         []byte
 	Ksid              []byte
 
-	Token *Token
+	Token              *Token
+	WtSessionTicketKey []byte
 
 	ECDHKey   *ECDHKey
 	RandomKey []byte
+
+	Age      byte
+	Sex      byte
+	NickName string
 }
 
 func NewClient(uin int64, paswordHash [16]byte, device *DeviceInfo) (*QQClient, error) {
@@ -30,6 +38,7 @@ func NewClient(uin int64, paswordHash [16]byte, device *DeviceInfo) (*QQClient, 
 	qqClient.Device = device
 	var err error
 	qqClient.SsoServerList, err = getSsoServerList(device.Protocol.AppId, device.IMEI)
+
 	qqClient.Connected = false
 	qqClient.PackageSequenceId = new(SafeInt32)
 	qqClient.PackageSequenceId.Set(0x3635)
@@ -47,4 +56,8 @@ func NewClient(uin int64, paswordHash [16]byte, device *DeviceInfo) (*QQClient, 
 
 func (qqClient *QQClient) NextSeqence() uint16 {
 	return uint16(qqClient.PackageSequenceId.Add(1) & 0x7FFF)
+}
+
+func (qqClient *QQClient) GetFriendList() {
+
 }
