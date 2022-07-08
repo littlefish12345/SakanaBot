@@ -1,2 +1,2 @@
 # FishBot
-脱离Mirai体系的qq bot框架
+独立的QQ bot 框架
