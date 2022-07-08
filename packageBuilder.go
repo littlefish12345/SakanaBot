@@ -145,8 +145,41 @@ func (qqClient *QQClient) BuildLoginSliderSendPack(ticket string) []byte {
 	bodyBuffer.Write(Int16ToBytes(4)) //tlvNum
 	bodyBuffer.Write(TlvType0x193Encode(ticket))
 	bodyBuffer.Write(TlvType0x8Encode(2052))
-	bodyBuffer.Write(TlvType0x104Encode(qqClient.Token.TlvType0x104))
+	bodyBuffer.Write(TlvType0x104Encode(qqClient.Token.TlvType0x104Data))
 	bodyBuffer.Write(TlvType0x116Encode(qqClient.Device.Protocol.Bitmap, qqClient.Device.Protocol.SubSigmap))
+	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack)
+}
+
+func (qqClient *QQClient) BuildLoginSMSRequestPack() []byte {
+	seqence := qqClient.NextSeqence()
+	fmt.Println(seqence)
+	bodyBuffer := new(bytes.Buffer)
+	bodyBuffer.Write(Int16ToBytes(8)) //subCommandId
+	bodyBuffer.Write(Int16ToBytes(6)) //tlvNum
+	bodyBuffer.Write(TlvType0x8Encode(2052))
+	bodyBuffer.Write(TlvType0x104Encode(qqClient.Token.TlvType0x104Data))
+	bodyBuffer.Write(TlvType0x116Encode(qqClient.Device.Protocol.Bitmap, qqClient.Device.Protocol.SubSigmap))
+	bodyBuffer.Write(TlvType0x174Encode(qqClient.Token.TlvType0x174Data))
+	bodyBuffer.Write(TlvType0x17AEncode(9))
+	bodyBuffer.Write(TlvType0x197Encode([]byte{0x00}))
+	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack)
+}
+
+func (qqClient *QQClient) BuildLoginSMSSubmitPack(SMSCode string) []byte {
+	seqence := qqClient.NextSeqence()
+	fmt.Println(seqence)
+	bodyBuffer := new(bytes.Buffer)
+	bodyBuffer.Write(Int16ToBytes(7)) //subCommandId
+	bodyBuffer.Write(Int16ToBytes(7)) //tlvNum
+	bodyBuffer.Write(TlvType0x8Encode(2052))
+	bodyBuffer.Write(TlvType0x104Encode(qqClient.Token.TlvType0x104Data))
+	bodyBuffer.Write(TlvType0x116Encode(qqClient.Device.Protocol.Bitmap, qqClient.Device.Protocol.SubSigmap))
+	bodyBuffer.Write(TlvType0x174Encode(qqClient.Token.TlvType0x174Data))
+	bodyBuffer.Write(TlvType0x17CEncode(SMSCode))
+	bodyBuffer.Write(TlvType0x401Encode(qqClient.Token.G))
+	bodyBuffer.Write(TlvType0x198Encode())
 	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
 	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack)
 }

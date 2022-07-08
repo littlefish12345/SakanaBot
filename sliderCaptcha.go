@@ -156,7 +156,7 @@ func GetSliderTicket() string {
 	return sliderTicketString
 }
 
-func (qqClient *QQClient) SendSliderTicket(ticket string) *LoginResponse {
+func (qqClient *QQClient) SubmitSliderTicket(ticket string) *LoginResponse {
 	if !qqClient.Connected {
 		qqClient.connect()
 	}

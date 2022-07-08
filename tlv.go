@@ -329,6 +329,10 @@ func TlvType0x16EEncode(model []byte) []byte {
 	return TlvEncode(0x16E, model)
 }
 
+func TlvType0x174Encode(data []byte) []byte {
+	return TlvEncode(0x174, data)
+}
+
 func TlvType0x177Encode(buildTime uint32, sdkVersion string) []byte {
 	buffer := new(bytes.Buffer)
 	buffer.WriteByte(0x01)
@@ -336,6 +340,17 @@ func TlvType0x177Encode(buildTime uint32, sdkVersion string) []byte {
 	buffer.Write(Int16ToBytes(int16(uint16(len(sdkVersion)))))
 	buffer.WriteString(sdkVersion)
 	return TlvEncode(0x177, buffer.Bytes())
+}
+
+func TlvType0x17AEncode(SMSAppId uint32) []byte {
+	return TlvEncode(0x17A, Int32ToBytes(int32(SMSAppId)))
+}
+
+func TlvType0x17CEncode(SMSCode string) []byte {
+	buffer := new(bytes.Buffer)
+	buffer.Write(Int16ToBytes(int16(uint16(len(SMSCode)))))
+	buffer.Write([]byte(SMSCode))
+	return TlvEncode(0x17C, buffer.Bytes())
 }
 
 func TlvType0x187Encode(macAddress []byte) []byte {
@@ -360,6 +375,17 @@ func TlvType0x194Encode(imsiHash []byte) []byte {
 	return TlvEncode(0x194, imsiHash)
 }
 
+func TlvType0x197Encode(data []byte) []byte {
+	buffer := new(bytes.Buffer)
+	buffer.Write(Int16ToBytes(int16(uint16(len(data)))))
+	buffer.Write(data)
+	return TlvEncode(0x197, buffer.Bytes())
+}
+
+func TlvType0x198Encode() []byte {
+	return TlvEncode(0x198, []byte{0x00})
+}
+
 func TlvType0x202Encode(wifiBSSID []byte, wifiSSID []byte) []byte {
 	buffer := new(bytes.Buffer)
 	if len(wifiBSSID) <= 16 {
@@ -377,6 +403,10 @@ func TlvType0x202Encode(wifiBSSID []byte, wifiSSID []byte) []byte {
 		buffer.Write(wifiSSID[:32])
 	}
 	return TlvEncode(0x202, buffer.Bytes())
+}
+
+func TlvType0x401Encode(data []byte) []byte {
+	return TlvEncode(0x401, data)
 }
 
 func TlvType0x511Encode(domains []string) []byte {

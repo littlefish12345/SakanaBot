@@ -3,9 +3,12 @@ package FishBot
 import (
 	"bytes"
 	"compress/zlib"
+	"crypto/md5"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"strconv"
+	"time"
 
 	goqqtea "github.com/littlefish12345/go-qq-tea"
 )
@@ -69,13 +72,48 @@ func (qqClient *QQClient) DecodeLoginResponse(data []byte) *LoginResponse {
 	tlvMap := TlvRead(data[5:], 2)
 	fmt.Println(status)
 	fmt.Println(tlvMap)
+
+	if tlvType0x402Data, ok := tlvMap[0x402]; ok {
+		str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		bytes := []byte(str)
+		qqClient.Token.Dpwd = []byte{}
+		rand.Seed(time.Now().UnixNano() + int64(rand.Intn(100)))
+		for i := 0; i < 16; i++ {
+			qqClient.Token.Dpwd = append(qqClient.Token.Dpwd, bytes[rand.Intn(len(bytes))])
+		}
+		qqClient.Token.TlvType0x402Data = tlvType0x402Data
+		hash := md5.Sum(append(qqClient.Device.Guid, append(qqClient.Token.Dpwd, qqClient.Token.TlvType0x402Data...)...))
+		qqClient.Token.G = hash[:]
+	}
+
 	if status == 2 {
-		qqClient.Token.TlvType0x104 = tlvMap[0x104]
+		qqClient.Token.TlvType0x104Data = tlvMap[0x104]
 		if type0x192Data, ok := tlvMap[0x192]; ok {
 			return &LoginResponse{
 				Success:         false,
 				Error:           LoginResponseNeedSlider,
 				SliderVerifyUrl: string(type0x192Data),
+			}
+		}
+	}
+
+	if status == 160 {
+		if tlvType0x174Data, ok := tlvMap[0x174]; ok {
+			qqClient.Token.TlvType0x104Data = tlvMap[0x104]
+			qqClient.Token.TlvType0x174Data = tlvType0x174Data
+			qqClient.Token.RansSeed = tlvMap[0x403]
+			phoneNum := string(tlvMap[0x178][2 : 2+BytesToInt16(tlvMap[0x178][0:2])])
+			return &LoginResponse{
+				Success:     false,
+				Error:       LoginResponseNeedSMS,
+				SMSPhoneNum: phoneNum,
+			}
+		}
+
+		if _, ok := tlvMap[0x17B]; ok {
+			return &LoginResponse{
+				Success: false,
+				Error:   LoginResponseNeedSMS,
 			}
 		}
 	}
@@ -95,5 +133,5 @@ func (qqClient *QQClient) DecodeLoginResponse(data []byte) *LoginResponse {
 			Message: message,
 		}
 	}
-	return nil
+	return &LoginResponse{}
 }
