@@ -11,8 +11,9 @@ type QQClient struct {
 	PaswordHash                [16]byte
 	Device                     *DeviceInfo
 	SsoServerList              []SsoServerInfoStruct
-	ResponsePackNotHandledMap  sync.Map
-	ResponsePackWaitChannelMap sync.Map
+	ResponsePackLock           sync.Mutex
+	ResponsePackNotHandledMap  map[uint16]*NetworkPackStruct
+	ResponsePackWaitChannelMap map[uint16]chan *NetworkPackStruct
 
 	Connected         bool
 	Conn              net.Conn

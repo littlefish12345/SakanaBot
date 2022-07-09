@@ -80,21 +80,26 @@ func (qqClient *QQClient) PackRecvLoop() {
 			continue
 		}
 		fmt.Println(netpackStruct)
-		if channel, ok := qqClient.ResponsePackWaitChannelMap.Load(netpackStruct.Seqence); ok {
-			channel.(chan *NetworkPackStruct) <- netpackStruct
-			qqClient.ResponsePackWaitChannelMap.Delete(netpackStruct.Seqence)
+		qqClient.ResponsePackLock.Lock()
+		if channel, ok := qqClient.ResponsePackWaitChannelMap[netpackStruct.Seqence]; ok {
+			channel <- netpackStruct
+			delete(qqClient.ResponsePackWaitChannelMap, netpackStruct.Seqence)
 		} else {
-			qqClient.ResponsePackNotHandledMap.Store(netpackStruct.Seqence, netpackStruct)
+			qqClient.ResponsePackNotHandledMap[netpackStruct.Seqence] = netpackStruct
 		}
+		qqClient.ResponsePackLock.Unlock()
 	}
 }
 
 func (qqClient *QQClient) RecvPack(seqence uint16) *NetworkPackStruct {
-	if netpackStruct, ok := qqClient.ResponsePackNotHandledMap.Load(seqence); ok {
-		qqClient.ResponsePackNotHandledMap.Delete(seqence)
-		return netpackStruct.(*NetworkPackStruct)
+	qqClient.ResponsePackLock.Lock()
+	if netpackStruct, ok := qqClient.ResponsePackNotHandledMap[seqence]; ok {
+		delete(qqClient.ResponsePackNotHandledMap, seqence)
+		qqClient.ResponsePackLock.Unlock()
+		return netpackStruct
 	}
 	channel := make(chan *NetworkPackStruct)
-	qqClient.ResponsePackWaitChannelMap.Store(seqence, channel)
+	qqClient.ResponsePackWaitChannelMap[seqence] = channel
+	qqClient.ResponsePackLock.Unlock()
 	return <-channel
 }
