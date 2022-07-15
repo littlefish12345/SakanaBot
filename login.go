@@ -3,7 +3,6 @@ package FishBot
 import (
 	"bytes"
 	"crypto/md5"
-	"fmt"
 	"time"
 
 	goqqtea "github.com/littlefish12345/go-qq-tea"
@@ -13,37 +12,40 @@ const (
 	LoginMethodPassword uint16 = 0
 )
 
-func (qqClient *QQClient) Login(method uint16) *LoginResponse {
+func (qqClient *QQClient) Login(method uint16) (*LoginResponse, error) {
 	if !qqClient.Connected {
 		qqClient.Connect()
 	}
 	if method == LoginMethodPassword {
 		netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildLoginPack()))
-		return qqClient.DecodeLoginResponseNetworkPack(netpack)
+		loginPack := qqClient.DecodeLoginResponseNetworkPack(netpack)
+		var err error
+		if loginPack.Success {
+			err = qqClient.Init()
+		}
+		return loginPack, err
 	}
-	return nil
+	return &LoginResponse{}, nil
 }
 
 func (qqClient *QQClient) RequestSMSCode() bool {
-	if !qqClient.Connected {
-		qqClient.Connect()
-	}
 	netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildLoginSMSRequestPack()))
 	return qqClient.DecodeLoginResponseNetworkPack(netpack).Error == LoginResponseNeedSMS
 }
 
-func (qqClient *QQClient) SubmitSMSCode(SMSCode string) *LoginResponse {
-	if !qqClient.Connected {
-		qqClient.Connect()
-	}
+func (qqClient *QQClient) SubmitSMSCode(SMSCode string) (*LoginResponse, error) {
 	netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildLoginSMSSubmitPack(SMSCode)))
-	return qqClient.DecodeLoginResponseNetworkPack(netpack)
+	loginPack := qqClient.DecodeLoginResponseNetworkPack(netpack)
+	var err error
+	if loginPack.Success {
+		err = qqClient.Init()
+	}
+	return loginPack, err
 }
 
 func (qqClient *QQClient) DecodeLoginResponseSuccessTlv(payload []byte) {
 	data := goqqtea.NewTeaCipher(qqClient.Device.TgtgtKey).Decrypt(payload)
 	tlvMap := TlvRead(data[2:], 2)
-	fmt.Println(tlvMap)
 	if TlvType0x108Data, ok := tlvMap[0x108]; ok {
 		qqClient.Ksid = TlvType0x108Data
 	}
@@ -88,9 +90,6 @@ func (qqClient *QQClient) DecodeLoginResponseSuccessTlv(payload []byte) {
 
 	if TlvType0x134Data, ok := tlvMap[0x134]; ok {
 		qqClient.WtSessionTicketKey = TlvType0x134Data
-	}
-	if TlvType0x16AData, ok := tlvMap[0x16A]; ok {
-		qqClient.Token.SrmToken = TlvType0x16AData
 	}
 	if TlvType0x16AData, ok := tlvMap[0x16A]; ok {
 		qqClient.Token.SrmToken = TlvType0x16AData

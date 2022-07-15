@@ -1,16 +1,19 @@
 package FishBot
 
 import (
+	"fmt"
 	"math/rand"
 	"net"
 	"sync"
+
+	goqqjce "github.com/littlefish12345/go-qq-jce"
 )
 
 type QQClient struct {
 	Uin                        int64
 	PaswordHash                [16]byte
 	Device                     *DeviceInfo
-	SsoServerList              []SsoServerInfoStruct
+	SsoServerList              []goqqjce.SsoServerInfoStruct
 	ResponsePackLock           sync.Mutex
 	ResponsePackNotHandledMap  map[uint16]*NetworkPackStruct
 	ResponsePackWaitChannelMap map[uint16]chan *NetworkPackStruct
@@ -39,6 +42,8 @@ func NewClient(uin int64, paswordHash [16]byte, device *DeviceInfo) (*QQClient, 
 	qqClient.Device = device
 	var err error
 	qqClient.SsoServerList, err = getSsoServerList(device.Protocol.AppId, device.IMEI)
+	qqClient.ResponsePackNotHandledMap = make(map[uint16]*NetworkPackStruct)
+	qqClient.ResponsePackWaitChannelMap = map[uint16]chan *NetworkPackStruct{}
 
 	qqClient.Connected = false
 	qqClient.PackageSequenceId = new(SafeInt32)
@@ -59,6 +64,24 @@ func (qqClient *QQClient) NextSeqence() uint16 {
 	return uint16(qqClient.PackageSequenceId.Add(1) & 0x7FFF)
 }
 
-func (qqClient *QQClient) GetFriendList() {
+func (qqClient *QQClient) ClientRegister() error {
+	netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildClientRegisterPack()))
+	return qqClient.DecodeRegisterResponse(netpack.Body)
+}
 
+func (qqClient *QQClient) Init() error {
+	err := qqClient.ClientRegister()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (qqClient *QQClient) GetFriendList() {
+	currentFriendCount := 0
+	for {
+		netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildFriendlistRequestPack(uint16(currentFriendCount), 150, 0, 0)))
+		fmt.Println(netpack)
+		break
+	}
 }

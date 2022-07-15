@@ -130,7 +130,7 @@ func NewDevice() *DeviceInfo {
 		Device:       "venus",
 		Board:        "venus",
 		Brand:        "Xiaomi",
-		Model:        "MI 11",
+		Model:        "Mi 11",
 		Bootloader:   "unknow",
 		BootId:       newBootId(),
 		ProcVersion:  newProcVersion(),

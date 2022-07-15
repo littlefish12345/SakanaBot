@@ -3,7 +3,12 @@ package FishBot
 import (
 	"bytes"
 	"strconv"
+	"time"
 
+	"github.com/RomiChan/protobuf/proto"
+	gojce "github.com/littlefish12345/go-jce"
+	goqqjce "github.com/littlefish12345/go-qq-jce"
+	goqqprotobuf "github.com/littlefish12345/go-qq-protobuf"
 	goqqtea "github.com/littlefish12345/go-qq-tea"
 )
 
@@ -56,7 +61,8 @@ func (qqClient *QQClient) BuildNetworkPack(requestType uint32, encryptType byte,
 	headBuffer.WriteByte(encryptType)
 	if requestType == NetpackRequestTypeLogin {
 		if encryptType == NetpackEncryptD2Key {
-
+			headBuffer.Write(Int32ToBytes(int32(uint32(len(qqClient.Token.D2) + 4))))
+			headBuffer.Write(qqClient.Token.D2)
 		} else {
 			headBuffer.Write([]byte{0x00, 0x00, 0x00, 0x04}) //1*uint32
 		}
@@ -74,7 +80,12 @@ func (qqClient *QQClient) BuildNetworkPack(requestType uint32, encryptType byte,
 		bodyBuffer.Write(Int32ToBytes(int32(qqClient.Device.Protocol.SubAppId)))
 		bodyBuffer.Write(Int32ToBytes(int32(qqClient.Device.Protocol.SubAppId)))
 		bodyBuffer.Write([]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00})
-		bodyBuffer.Write([]byte{0x00, 0x00, 0x00, 0x04}) //1*uint32
+		if len(qqClient.Token.Tgt) == 0 || len(qqClient.Token.Tgt) == 4 {
+			bodyBuffer.Write([]byte{0x00, 0x00, 0x00, 0x04})
+		} else {
+			bodyBuffer.Write(Int32ToBytes(int32(uint32(len(qqClient.Token.Tgt) + 4))))
+			bodyBuffer.Write(qqClient.Token.Tgt)
+		}
 	}
 	bodyBuffer.Write(Int32ToBytes(int32(uint32(len(commandName) + 4))))
 	bodyBuffer.WriteString(commandName)
@@ -88,16 +99,14 @@ func (qqClient *QQClient) BuildNetworkPack(requestType uint32, encryptType byte,
 		bodyBuffer.Write(qqClient.Ksid)
 	}
 	bodyBuffer.Write([]byte{0x00, 0x00, 0x00, 0x04}) //1*uint32
-
 	bodyEncoded := append(Int32ToBytes(int32(uint32(bodyBuffer.Len()+4))), append(bodyBuffer.Bytes(), append(Int32ToBytes(int32(uint32(len(body)+4))), body...)...)...)
-	if encryptType == NetpackEncryptD2Key {
 
+	if encryptType == NetpackEncryptD2Key {
+		bodyEncoded = goqqtea.NewTeaCipher(qqClient.Token.D2Key).Encrypt(bodyEncoded)
 	} else if encryptType == NetpackEncryptEmptyKey {
-		key := make([]byte, 16)
-		bodyEncoded = goqqtea.NewTeaCipher(key).Encrypt(bodyEncoded)
+		bodyEncoded = goqqtea.NewTeaCipher(make([]byte, 16)).Encrypt(bodyEncoded)
 	}
 	headBuffer.Write(bodyEncoded)
-
 	return append(Int32ToBytes(int32(uint32(headBuffer.Len()+4))), headBuffer.Bytes()...)
 }
 
@@ -191,4 +200,82 @@ func (qqClient *QQClient) BuildLoginDeviceLockPack() ([]byte, uint16) {
 	bodyBuffer.Write(TlvType0x401Encode(qqClient.Token.G))
 	requestPack := qqClient.BuildRequestPack(qqClient.Uin, 2064, RequestEncryptEMECDH, bodyBuffer.Bytes())
 	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptEmptyKey, seqence, qqClient.Uin, "wtlogin.login", requestPack), seqence
+}
+
+func (qqClient *QQClient) BuildClientRegisterPack() ([]byte, uint16) {
+	seqence := qqClient.NextSeqence()
+	payloadStruct, _ := gojce.Marshal(goqqjce.ClientRegisterPackStruct{
+		Uin:          qqClient.Uin,
+		Bid:          7,
+		ConnType:     0,
+		Status:       11,
+		KickPC:       false,
+		KickWeak:     false,
+		TimeStamp:    time.Now().Unix(),
+		IOSVersion:   int64(qqClient.Device.Version.SDK),
+		NetType:      1,
+		RegType:      0,
+		Guid:         qqClient.Device.Guid,
+		LocaleId:     2052,
+		DeviceName:   qqClient.Device.Model,
+		DeviceType:   qqClient.Device.Model,
+		OSVersion:    qqClient.Device.Version.Release,
+		OpenPush:     true,
+		LargeSeq:     0,
+		VendorName:   qqClient.Device.VendorName,
+		VendorOSName: qqClient.Device.VendorOSName,
+		B769Request:  []byte{0x0A, 0x04, 0x08, 0x2E, 0x10, 0x00, 0x0A, 0x05, 0x08, 0x9B, 0x02, 0x10, 0x00},
+		IsSetStatus:  false,
+		SetMute:      false,
+	})
+	payloadData, _ := payloadStruct.ToBytes(0)
+	requestStruct, _ := gojce.Marshal(goqqjce.RequestPacketStruct{
+		Version:     3,
+		ServantName: "PushService",
+		FuncName:    "SvcReqRegister",
+		Buffer:      gojce.JceSectionMapStrBytesToBytes(0, map[string][]byte{"SvcReqRegister": payloadData}),
+	})
+	requestData, _ := requestStruct.Encode()
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptD2Key, seqence, qqClient.Uin, "StatSvc.register", requestData), seqence
+}
+
+func (qqClient *QQClient) BuildFriendlistRequestPack(friendStartIndex uint16, friendListCount uint16, groupStartIndex uint8, groupListCount uint8) ([]byte, uint16) {
+	seqence := qqClient.NextSeqence()
+	D50RequestData, _ := proto.Marshal(goqqprotobuf.D50RequestStruct{
+		AppId:                       1002,
+		RequestMusicSwitch:          1,
+		RequestMutualmarkAlienation: 1,
+		RequestKsingSwitch:          1,
+		RequestMutalmarkLbsShare:    1,
+	})
+	payloadStruct, _ := gojce.Marshal(goqqjce.FriendListRequest{
+		RequestType:     3,
+		IfReflush:       friendStartIndex > 0,
+		Uin:             qqClient.Uin,
+		StartIndex:      int16(friendStartIndex),
+		FriendCount:     int16(friendListCount),
+		GroupId:         0,
+		IfGetGroupInfo:  groupStartIndex > 0,
+		GroupStartIndex: byte(groupStartIndex),
+		GroupCount:      groupListCount,
+		IfGetMsfGroup:   false,
+		IfShowTermType:  true,
+		Version:         31,
+		UinList:         nil,
+		AppType:         0,
+		IfGetDovId:      false,
+		IfGetBothFlag:   false,
+		D50Request:      D50RequestData,
+		D6BRequest:      []byte{},
+		SnsTypeList:     []int64{13580, 13581, 13582},
+	})
+	payloadData, _ := payloadStruct.ToBytes(0)
+	requestStruct, _ := gojce.Marshal(goqqjce.RequestPacketStruct{
+		Version:     3,
+		ServantName: "mqq.IMService.FriendListServiceServantObj",
+		FuncName:    "GetFriendListReq",
+		Buffer:      gojce.JceSectionMapStrBytesToBytes(0, map[string][]byte{"FL": payloadData}),
+	})
+	requestData, _ := requestStruct.Encode()
+	return qqClient.BuildNetworkPack(NetpackRequestTypeSimple, NetpackEncryptD2Key, seqence, qqClient.Uin, "friendlist.getFriendGroupList", requestData), seqence
 }

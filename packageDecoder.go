@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"compress/zlib"
 	"crypto/md5"
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"math/rand"
 	"strconv"
 	"time"
 
+	gojce "github.com/littlefish12345/go-jce"
+	goqqjce "github.com/littlefish12345/go-qq-jce"
 	goqqtea "github.com/littlefish12345/go-qq-tea"
 )
 
@@ -29,18 +31,18 @@ func (qqClient *QQClient) DecodeNetworkPack(data []byte) (*NetworkPackStruct, er
 	encryptType := data[4]
 	uinLenght := BytesToInt32(data[6:10]) - 4
 	uin, _ := strconv.ParseInt(string(data[10:10+uinLenght]), 10, 64)
-	ssoPackData := data[10+uinLenght:]
+	packBody := data[10+uinLenght:]
 	if encryptType == NetpackEncryptD2Key {
-
+		packBody = goqqtea.NewTeaCipher(qqClient.Token.D2Key).Decrypt(packBody)
 	} else if encryptType == NetpackEncryptEmptyKey {
-		ssoPackData = goqqtea.NewTeaCipher(make([]byte, 16)).Decrypt(ssoPackData)
+		packBody = goqqtea.NewTeaCipher(make([]byte, 16)).Decrypt(packBody)
 	}
 
-	headLength := BytesToInt32(ssoPackData[0:4]) - 4
-	if headLength < 4 || headLength > int32(len(ssoPackData)+4) {
+	headLength := BytesToInt32(packBody[0:4]) - 4
+	if headLength < 4 || headLength > int32(len(packBody)+4) {
 		return nil, ErrorPackLengthError
 	}
-	head := ssoPackData[4 : 4+headLength]
+	head := packBody[4 : 4+headLength]
 	seqence := BytesToInt32(head[0:4])
 	returnCode := BytesToInt32(head[4:8])
 	messageLength := BytesToInt32(head[8:12]) - 4
@@ -49,8 +51,8 @@ func (qqClient *QQClient) DecodeNetworkPack(data []byte) (*NetworkPackStruct, er
 	commandName := string(head[16+messageLength : 16+messageLength+commandNameLength])
 	compressedFlag := BytesToInt32(head[16+messageLength+commandNameLength : 20+messageLength+commandNameLength])
 
-	bodyLenght := BytesToInt32(ssoPackData[4+headLength : 8+headLength])
-	body := ssoPackData[8+headLength:]
+	bodyLenght := BytesToInt32(packBody[4+headLength : 8+headLength])
+	body := packBody[8+headLength:]
 	if bodyLenght > 0 && bodyLenght < int32(len(body)) {
 		body = body[:bodyLenght]
 	}
@@ -95,8 +97,6 @@ func (qqClient *QQClient) DecodeLoginResponse(data []byte) *LoginResponse {
 	//subCommand := BytesToInt16(data[0:2])
 	status := data[2]
 	tlvMap := TlvRead(data[5:], 2)
-	fmt.Println(status)
-	fmt.Println(tlvMap)
 
 	if tlvType0x402Data, ok := tlvMap[0x402]; ok {
 		str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -176,4 +176,19 @@ func (qqClient *QQClient) DecodeLoginResponse(data []byte) *LoginResponse {
 		}
 	}
 	return &LoginResponse{}
+}
+
+func (qqClient *QQClient) DecodeRegisterResponse(data []byte) error {
+	requestStruct := &goqqjce.RequestPacketStruct{}
+	gojce.Unmarshal(data, requestStruct)
+	payloadMap := gojce.JceSectionMapStrMapStrBytesFromBytes(gojce.NewJceReader(requestStruct.Buffer))
+	payloadStruct := &goqqjce.ClientRegisterResponsePackStruct{}
+	gojce.Unmarshal(payloadMap["SvcRespRegister"]["QQService.SvcRespRegister"][1:], payloadStruct)
+	if payloadStruct.Result != "" {
+		return errors.New("client register failed: " + payloadStruct.Result)
+	}
+	if payloadStruct.ReplyCode != 0 {
+		return errors.New("client register failed: replyCode: " + strconv.Itoa(int(payloadStruct.ReplyCode)))
+	}
+	return nil
 }

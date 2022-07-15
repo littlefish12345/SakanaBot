@@ -11,53 +11,19 @@ import (
 	"sync"
 
 	gojce "github.com/littlefish12345/go-jce"
+	goqqjce "github.com/littlefish12345/go-qq-jce"
 	goqqtea "github.com/littlefish12345/go-qq-tea"
 )
 
-type SsoServerRequestStruct struct {
-	Uin     int64  `jceId:"1"`
-	Timeout int64  `jceId:"2"`
-	C       byte   `jceId:"3"` //一直为0x01
-	IMSI    string `jceId:"4"`
-	IsWifi  int32  `jceId:"5"` //true=100, false=1
-	AppId   int32  `jceId:"6"`
-	IMEI    string `jceId:"7"`
-	CellId  int64  `jceId:"8"`
-	I       int64  `jceId:"9"`
-	J       int64  `jceId:"10"`
-	K       int64  `jceId:"11"`
-	L       bool   `jceId:"12"`
-	M       int64  `jceId:"13"`
-}
-
-type SsoServerInfoStruct struct {
-	Host     string `jceId:"1"`
-	Port     int32  `jceId:"2"`
-	Location string `jceId:"8"`
-}
-
-type RequestPacketStruct struct {
-	Version     int16             `jceId:"1"`
-	PkgType     byte              `jceId:"2"`
-	MsgType     int32             `jceId:"3"`
-	ReqId       int32             `jceId:"4"`
-	ServantName string            `jceId:"5"`
-	FuncName    string            `jceId:"6"`
-	Buffer      []byte            `jceId:"7"`
-	Timeout     int32             `jceId:"8"`
-	Context     map[string]string `jceId:"9"`
-	Status      map[string]string `jceId:"10"`
-}
-
-func decodeSsoServerInfo(readBuffer *gojce.JceReader) ([]SsoServerInfoStruct, error) {
+func decodeSsoServerInfo(readBuffer *gojce.JceReader) ([]goqqjce.SsoServerInfoStruct, error) {
 	readBuffer.SkipHead()
 	readBuffer.SkipToId(2)
 	readBuffer.SkipHead()
 	length := gojce.JceSectionInt32FromBytes(readBuffer)
-	var returnList []SsoServerInfoStruct
-	var ssoServerInfo SsoServerInfoStruct
+	var returnList []goqqjce.SsoServerInfoStruct
+	var ssoServerInfo goqqjce.SsoServerInfoStruct
 	for i := int32(0); i < length; i++ {
-		ssoServerInfo = SsoServerInfoStruct{}
+		ssoServerInfo = goqqjce.SsoServerInfoStruct{}
 		readBuffer.SkipHead()
 		ssoServerInfo.Host = gojce.JceSectionStringFromBytes(readBuffer)
 		ssoServerInfo.Port = gojce.JceSectionInt32FromBytes(readBuffer)
@@ -72,7 +38,7 @@ func decodeSsoServerInfo(readBuffer *gojce.JceReader) ([]SsoServerInfoStruct, er
 	return returnList, nil
 }
 
-func ssoServerConnectionTest(waitGroup *sync.WaitGroup, server *SsoServerInfoStruct) int64 { //测试五次tcp连接时间取平均值
+func ssoServerConnectionTest(waitGroup *sync.WaitGroup, server *goqqjce.SsoServerInfoStruct) int64 { //测试五次tcp连接时间取平均值
 	var successTimes int64
 	var sumTime int64
 	var nowTime int64
@@ -90,7 +56,7 @@ func ssoServerConnectionTest(waitGroup *sync.WaitGroup, server *SsoServerInfoStr
 	return -1
 }
 
-func sortSsoServerList(serverList *[]SsoServerInfoStruct) {
+func sortSsoServerList(serverList *[]goqqjce.SsoServerInfoStruct) {
 	connectionTimeList := make([]int64, len(*serverList))
 	waitGroup := sync.WaitGroup{}
 	for i := 0; i < len(*serverList); i++ {
@@ -105,33 +71,26 @@ func sortSsoServerList(serverList *[]SsoServerInfoStruct) {
 	})
 }
 
-func getSsoServerList(appId uint32, imei string) ([]SsoServerInfoStruct, error) {
+func getSsoServerList(appId uint32, imei string) ([]goqqjce.SsoServerInfoStruct, error) {
 	key, _ := hex.DecodeString("F0441F5FF42DA58FDCF7949ABA62D411")
-	SsoServerRequest, err := gojce.Marshal(SsoServerRequestStruct{C: 0x01, IMSI: "00000", IsWifi: 100, AppId: int32(appId), IMEI: imei})
-	if err != nil {
-		return nil, err
-	}
-	payloadData, err := SsoServerRequest.ToBytes(0)
-	if err != nil {
-		return nil, err
-	}
+	SsoServerRequest, _ := gojce.Marshal(goqqjce.SsoServerRequestStruct{
+		C:      0x01,
+		IMSI:   "00000",
+		IsWifi: 100,
+		AppId:  int32(appId),
+		IMEI:   imei,
+	})
+	payloadData, _ := SsoServerRequest.ToBytes(0)
+	requestPack, _ := gojce.Marshal(goqqjce.RequestPacketStruct{
+		Version:     3,
+		ServantName: "ConfigHttp",
+		FuncName:    "HttpServerListReq",
+		Buffer:      gojce.JceSectionMapStrBytesToBytes(0, map[string][]byte{"HttpServerListReq": payloadData}),
+	})
 
-	bufferMap := make(map[string][]byte)
-	bufferMap["HttpServerListReq"] = payloadData
-	bufferMapData := gojce.JceSectionMapStrBytesToBytes(0, bufferMap)
-	if err != nil {
-		return nil, err
-	}
-	requestPack, err := gojce.Marshal(RequestPacketStruct{Version: 3, ServantName: "ConfigHttp", FuncName: "HttpServerListReq", Buffer: bufferMapData})
-	if err != nil {
-		return nil, err
-	}
-	finalPack, err := requestPack.EncodeWithLength()
+	finalPack, _ := requestPack.EncodeWithLength()
 	teaCipher := goqqtea.NewTeaCipher(key)
 	encryptedFinalPack := teaCipher.Encrypt(finalPack)
-	if err != nil {
-		return nil, err
-	}
 
 	client := &http.Client{}
 
@@ -158,7 +117,7 @@ func getSsoServerList(appId uint32, imei string) ([]SsoServerInfoStruct, error) 
 	}
 	decryptedRecvData := teaCipher.Decrypt(recvData)
 
-	recvStruct := &RequestPacketStruct{}
+	recvStruct := &goqqjce.RequestPacketStruct{}
 	err = gojce.Unmarshal(decryptedRecvData[4:], recvStruct)
 	if err != nil {
 		return nil, err

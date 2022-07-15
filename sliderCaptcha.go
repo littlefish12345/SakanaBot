@@ -2,7 +2,6 @@ package FishBot
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"runtime"
@@ -120,7 +119,7 @@ func StartSliderCaptchaServer() ([]string, error) { //http url
 		}
 	}
 
-	address, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:0", "0.0.0.0"))
+	address, err := net.ResolveTCPAddr("tcp", "0.0.0.0:0")
 	if err != nil {
 		return []string{}, err
 	}
