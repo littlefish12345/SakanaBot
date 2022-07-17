@@ -1,10 +1,10 @@
 package FishBot
 
 import (
-	"fmt"
 	"math/rand"
 	"net"
 	"sync"
+	"time"
 
 	goqqjce "github.com/littlefish12345/go-qq-jce"
 )
@@ -33,6 +33,8 @@ type QQClient struct {
 	Age      byte
 	Sex      byte
 	NickName string
+
+	Online bool
 }
 
 func NewClient(uin int64, paswordHash [16]byte, device *DeviceInfo) (*QQClient, error) {
@@ -74,14 +76,35 @@ func (qqClient *QQClient) Init() error {
 	if err != nil {
 		return err
 	}
+	qqClient.Online = true
+	go qqClient.HeartBeat()
 	return nil
 }
 
-func (qqClient *QQClient) GetFriendList() {
-	currentFriendCount := 0
-	for {
-		netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildFriendlistRequestPack(uint16(currentFriendCount), 150, 0, 0)))
-		fmt.Println(netpack)
-		break
+func (qqClient *QQClient) HeartBeat() {
+	count := 0
+	for qqClient.Connected && qqClient.Online {
+		time.Sleep(time.Second * 30)
+		_ = qqClient.RecvPack(qqClient.SendPack(qqClient.BuildHeartBeatPack()))
+		if count == 7 {
+			qqClient.ClientRegister()
+			count = 0
+		}
+		count++
 	}
+}
+
+func (qqClient *QQClient) GetFriendList() []*goqqjce.FriendInfoStruct {
+	var totalFriendCount uint16
+	var allFriendInfoList []*goqqjce.FriendInfoStruct
+	var friendInfoList []*goqqjce.FriendInfoStruct
+	for {
+		netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildFriendListRequestPack(uint16(len(allFriendInfoList)), 150, 0, 0)))
+		totalFriendCount, friendInfoList = qqClient.DecodeFriendGroupListResponse(netpack.Body)
+		allFriendInfoList = append(allFriendInfoList, friendInfoList...)
+		if len(allFriendInfoList) >= int(totalFriendCount) {
+			break
+		}
+	}
+	return allFriendInfoList
 }

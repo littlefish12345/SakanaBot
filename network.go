@@ -79,7 +79,6 @@ func (qqClient *QQClient) PackRecvLoop() {
 			fmt.Println(err)
 			continue
 		}
-		//fmt.Println(netpackStruct)
 		qqClient.ResponsePackLock.Lock()
 		if channel, ok := qqClient.ResponsePackWaitChannelMap[netpackStruct.Seqence]; ok {
 			channel <- netpackStruct

@@ -5,6 +5,7 @@ import (
 	"compress/zlib"
 	"crypto/md5"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"strconv"
@@ -191,4 +192,29 @@ func (qqClient *QQClient) DecodeRegisterResponse(data []byte) error {
 		return errors.New("client register failed: replyCode: " + strconv.Itoa(int(payloadStruct.ReplyCode)))
 	}
 	return nil
+}
+
+func (qqClient *QQClient) DecodeFriendGroupListResponse(data []byte) (uint16, []*goqqjce.FriendInfoStruct) {
+	requestStruct := &goqqjce.RequestPacketStruct{}
+	gojce.Unmarshal(data, requestStruct)
+	payloadMap := gojce.JceSectionMapStrBytesFromBytes(gojce.NewJceReader(requestStruct.Buffer))
+	reader := gojce.NewJceReader(payloadMap["FLRESP"][1:])
+	reader.SkipToId(5)
+	friendNum := uint16(gojce.JceSectionInt16FromBytes(reader))
+	reader.SkipToId(7)
+	reader.SkipHead()
+	friendListLength := uint32(gojce.JceSectionInt32FromBytes(reader))
+	var returnFriendInfoList []*goqqjce.FriendInfoStruct
+	var friendInfo *goqqjce.FriendInfoStruct
+	var structData []byte
+	for i := 0; i < int(friendListLength); i++ {
+		friendInfo = new(goqqjce.FriendInfoStruct)
+		structData, _ = reader.ReadJceStructByte()
+		err := gojce.Unmarshal(structData, friendInfo)
+		if err != nil {
+			fmt.Println(err)
+		}
+		returnFriendInfoList = append(returnFriendInfoList, friendInfo)
+	}
+	return friendNum, returnFriendInfoList
 }

@@ -239,7 +239,12 @@ func (qqClient *QQClient) BuildClientRegisterPack() ([]byte, uint16) {
 	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptD2Key, seqence, qqClient.Uin, "StatSvc.register", requestData), seqence
 }
 
-func (qqClient *QQClient) BuildFriendlistRequestPack(friendStartIndex uint16, friendListCount uint16, groupStartIndex uint8, groupListCount uint8) ([]byte, uint16) {
+func (qqClient *QQClient) BuildHeartBeatPack() ([]byte, uint16) {
+	seqence := qqClient.NextSeqence()
+	return qqClient.BuildNetworkPack(NetpackRequestTypeLogin, NetpackEncryptNoEncrypt, seqence, qqClient.Uin, "Heartbeat.Alive", []byte{}), seqence
+}
+
+func (qqClient *QQClient) BuildFriendListRequestPack(friendStartIndex uint16, friendListCount uint16, groupStartIndex uint8, groupListCount uint8) ([]byte, uint16) {
 	seqence := qqClient.NextSeqence()
 	D50RequestData, _ := proto.Marshal(goqqprotobuf.D50RequestStruct{
 		AppId:                       1002,
@@ -260,7 +265,7 @@ func (qqClient *QQClient) BuildFriendlistRequestPack(friendStartIndex uint16, fr
 		GroupCount:      groupListCount,
 		IfGetMsfGroup:   false,
 		IfShowTermType:  true,
-		Version:         31,
+		Version:         27,
 		UinList:         nil,
 		AppType:         0,
 		IfGetDovId:      false,
