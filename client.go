@@ -108,3 +108,18 @@ func (qqClient *QQClient) GetFriendList() []*goqqjce.FriendInfoStruct {
 	}
 	return allFriendInfoList
 }
+
+func (qqClient *QQClient) GetGroupList() []*goqqjce.TroopNumStruct {
+	var cookie []byte
+	var allTroopNumList []*goqqjce.TroopNumStruct
+	var troopNumList []*goqqjce.TroopNumStruct
+	for {
+		netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildGroupListRequestPack(cookie)))
+		troopNumList, cookie = qqClient.DecodeGroupListResponse(netpack.Body)
+		allTroopNumList = append(allTroopNumList, troopNumList...)
+		if len(cookie) == 0 {
+			break
+		}
+	}
+	return allTroopNumList
+}

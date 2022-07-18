@@ -221,3 +221,29 @@ func (qqClient *QQClient) DecodeFriendGroupListResponse(data []byte) (uint16, []
 	}
 	return friendNum, returnFriendInfoList
 }
+
+func (qqClient *QQClient) DecodeGroupListResponse(data []byte) ([]*goqqjce.TroopNumStruct, []byte) {
+	requestStruct := &goqqjce.RequestPacketStruct{}
+	gojce.Unmarshal(data, requestStruct)
+	payloadMap := gojce.JceSectionMapStrBytesFromBytes(gojce.NewJceReader(requestStruct.Buffer))
+	payload := payloadMap["GetTroopListRespV2"][1:]
+	reader := gojce.NewJceReader(payload)
+	reader.SkipToId(4)
+	cookie := gojce.JceSectionBytesFromBytes(reader)
+	reader.SkipToId(5)
+	reader.SkipHead()
+	troopNumListLength := uint32(gojce.JceSectionInt32FromBytes(reader))
+	var returnTroopNumList []*goqqjce.TroopNumStruct
+	var troopNum *goqqjce.TroopNumStruct
+	var structData []byte
+	for i := 0; i < int(troopNumListLength); i++ {
+		troopNum = new(goqqjce.TroopNumStruct)
+		structData, _ = reader.ReadJceStructByte()
+		err := gojce.Unmarshal(structData, troopNum)
+		if err != nil {
+			fmt.Println(err)
+		}
+		returnTroopNumList = append(returnTroopNumList, troopNum)
+	}
+	return returnTroopNumList, cookie
+}

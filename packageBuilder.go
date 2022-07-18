@@ -259,13 +259,13 @@ func (qqClient *QQClient) BuildFriendListRequestPack(friendStartIndex uint16, fr
 		Uin:             qqClient.Uin,
 		StartIndex:      int16(friendStartIndex),
 		FriendCount:     int16(friendListCount),
-		GroupId:         0,
+		GroupId:         1,
 		IfGetGroupInfo:  groupStartIndex > 0,
 		GroupStartIndex: byte(groupStartIndex),
 		GroupCount:      groupListCount,
 		IfGetMsfGroup:   false,
 		IfShowTermType:  true,
-		Version:         27,
+		Version:         31,
 		UinList:         nil,
 		AppType:         0,
 		IfGetDovId:      false,
@@ -283,4 +283,28 @@ func (qqClient *QQClient) BuildFriendListRequestPack(friendStartIndex uint16, fr
 	})
 	requestData, _ := requestStruct.Encode()
 	return qqClient.BuildNetworkPack(NetpackRequestTypeSimple, NetpackEncryptD2Key, seqence, qqClient.Uin, "friendlist.getFriendGroupList", requestData), seqence
+}
+
+func (qqClient *QQClient) BuildGroupListRequestPack(cookie []byte) ([]byte, uint16) {
+	seqence := qqClient.NextSeqence()
+	payloadStruct, _ := gojce.Marshal(goqqjce.TroopListRequestV2Simplify{
+		Uin:               qqClient.Uin,
+		GetMsfMessageFlag: true,
+		Cookie:            cookie,
+		GroupInfo:         []int64{},
+		GroupFlagExt:      1,
+		Version:           9,
+		CompanyId:         0,
+		VersionNumber:     1,
+		GetLongGroupName:  true,
+	})
+	payloadData, _ := payloadStruct.ToBytes(0)
+	requestStruct, _ := gojce.Marshal(goqqjce.RequestPacketStruct{
+		Version:     3,
+		ServantName: "mqq.IMService.FriendListServiceServantObj",
+		FuncName:    "GetTroopListReqV2Simplify",
+		Buffer:      gojce.JceSectionMapStrBytesToBytes(0, map[string][]byte{"GetTroopListReqV2Simplify": payloadData}),
+	})
+	requestData, _ := requestStruct.Encode()
+	return qqClient.BuildNetworkPack(NetpackRequestTypeSimple, NetpackEncryptD2Key, seqence, qqClient.Uin, "friendlist.GetTroopListReqV2", requestData), seqence
 }
