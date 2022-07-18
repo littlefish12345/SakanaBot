@@ -14,5 +14,3 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/littlefish12345/simpwebserv v1.7.2
 )
-
-replace github.com/littlefish12345/go-qq-jce => ../go-qq-jce
