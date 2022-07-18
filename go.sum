@@ -7,10 +7,16 @@ github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/littlefish12345/go-jce v0.0.0-20220615162315-6c2399a2370c h1:tnUG68CX1gynWEI/idPQL3y8Wg3m+y8dA0an/o5pXvI=
 github.com/littlefish12345/go-jce v0.0.0-20220615162315-6c2399a2370c/go.mod h1:1p9V1tl8/C6HnLgRW80+7KocChAiZk7EkWsawrgoPOc=
+github.com/littlefish12345/go-jce v0.0.0-20220717100419-b95512a05e3c h1:OD8rsL0vAwXbH5WThMs5ygFB5f6egzLaLgVud9txx5s=
+github.com/littlefish12345/go-jce v0.0.0-20220717100419-b95512a05e3c/go.mod h1:1p9V1tl8/C6HnLgRW80+7KocChAiZk7EkWsawrgoPOc=
 github.com/littlefish12345/go-qq-jce v0.0.0-20220711051441-81853575fda1 h1:ne/2c7tJ1uj2fnwDB43opcbG/uJx8lnaxtq+FstpleU=
 github.com/littlefish12345/go-qq-jce v0.0.0-20220711051441-81853575fda1/go.mod h1:FQ7tjMliIMN4J+MoI6Xv5AsezB0sfzHu/v12jG44Nys=
+github.com/littlefish12345/go-qq-jce v0.0.0-20220716160011-26dd58f660e5 h1:DV8VwuJ5WcsSvydv59ouyRgaCN4oUn08BjgOjL3Rvos=
+github.com/littlefish12345/go-qq-jce v0.0.0-20220716160011-26dd58f660e5/go.mod h1:FQ7tjMliIMN4J+MoI6Xv5AsezB0sfzHu/v12jG44Nys=
 github.com/littlefish12345/go-qq-protobuf v0.0.0-20220626033338-46e90ed1d250 h1:pXau/ljm1PDZv43o9eRWvSAhaY6vQfC6djqO9Rgrlno=
 github.com/littlefish12345/go-qq-protobuf v0.0.0-20220626033338-46e90ed1d250/go.mod h1:zkmtMtvn8doU/1O9PoNswMXN8t/KbGluUPqUNHQocPw=
+github.com/littlefish12345/go-qq-protobuf v0.0.0-20220715042245-fc5efcf06a71 h1:i2Wra4KmnoJZjkuWw1f257s1CmGe2UOuo8ML7NkODTQ=
+github.com/littlefish12345/go-qq-protobuf v0.0.0-20220715042245-fc5efcf06a71/go.mod h1:zkmtMtvn8doU/1O9PoNswMXN8t/KbGluUPqUNHQocPw=
 github.com/littlefish12345/go-qq-tea v0.0.0-20220610163936-19cb6f017b00 h1:hyO3M0u1/Zmr2i+vxpqA8vWtZjy5QkE+Radc89Y4Ig0=
 github.com/littlefish12345/go-qq-tea v0.0.0-20220610163936-19cb6f017b00/go.mod h1:QTruU5Q69H55hRf9v4jjMr8yQpJQYQftYkuI8Cr9lTk=
 github.com/littlefish12345/simpwebserv v1.7.2 h1:zYkxiik1cUAAHJdI9b4RAlaIMdsrdj1BIp+50jvMPgA=

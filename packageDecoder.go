@@ -24,6 +24,7 @@ type NetworkPackStruct struct {
 	ReturnCode   int32
 	Message      string
 	CommandName  string
+	SessionId    []byte
 	Body         []byte
 }
 
@@ -40,7 +41,7 @@ func (qqClient *QQClient) DecodeNetworkPack(data []byte) (*NetworkPackStruct, er
 	}
 
 	headLength := BytesToInt32(packBody[0:4]) - 4
-	if headLength < 4 || headLength > int32(len(packBody)+4) {
+	if headLength < 0 || headLength > int32(len(packBody)) {
 		return nil, ErrorPackLengthError
 	}
 	head := packBody[4 : 4+headLength]
@@ -50,9 +51,10 @@ func (qqClient *QQClient) DecodeNetworkPack(data []byte) (*NetworkPackStruct, er
 	message := string(head[12 : 12+messageLength])
 	commandNameLength := BytesToInt32(head[12+messageLength:16+messageLength]) - 4
 	commandName := string(head[16+messageLength : 16+messageLength+commandNameLength])
-	compressedFlag := BytesToInt32(head[16+messageLength+commandNameLength : 20+messageLength+commandNameLength])
-
-	bodyLenght := BytesToInt32(packBody[4+headLength : 8+headLength])
+	sessionIdLength := BytesToInt32(head[16+messageLength+commandNameLength:20+messageLength+commandNameLength]) - 4
+	sessionId := head[20+messageLength+commandNameLength : 20+messageLength+commandNameLength+sessionIdLength]
+	compressedFlag := BytesToInt32(head[20+messageLength+commandNameLength+sessionIdLength : 24+messageLength+commandNameLength+sessionIdLength])
+	bodyLenght := BytesToInt32(packBody[4+headLength:8+headLength]) - 4
 	body := packBody[8+headLength:]
 	if bodyLenght > 0 && bodyLenght < int32(len(body)) {
 		body = body[:bodyLenght]
@@ -70,6 +72,7 @@ func (qqClient *QQClient) DecodeNetworkPack(data []byte) (*NetworkPackStruct, er
 		ReturnCode:   returnCode,
 		Message:      message,
 		CommandName:  commandName,
+		SessionId:    sessionId,
 		Body:         body,
 	}, nil
 }
@@ -133,7 +136,7 @@ func (qqClient *QQClient) DecodeLoginResponse(data []byte) *LoginResponse {
 		}
 	}
 
-	if status == 160 {
+	if status == 160 || status == 239 {
 		if tlvType0x174Data, ok := tlvMap[0x174]; ok {
 			qqClient.Token.TlvType0x104Data = tlvMap[0x104]
 			qqClient.Token.TlvType0x174Data = tlvType0x174Data
