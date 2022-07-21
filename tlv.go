@@ -444,15 +444,15 @@ func TlvType0x536Encode(loginExtraData []byte) []byte {
 
 func TlvType0x52DEncode(deviceInfo *DeviceInfo) []byte {
 	data, _ := proto.Marshal(goqqprotobuf.DeviceInfoBytesStruct{
-		Bootloader:   deviceInfo.Bootloader,
-		ProcVersion:  deviceInfo.ProcVersion,
-		CodeName:     deviceInfo.Version.CodeName,
-		Incremental:  deviceInfo.Version.Incremental,
-		FingerPrint:  deviceInfo.FingerPrint,
-		BootId:       deviceInfo.BootId,
-		AndroidId:    deviceInfo.AndroidId,
-		BaseBand:     deviceInfo.BaseBand,
-		InnerVersion: deviceInfo.Version.Incremental,
+		Bootloader:   proto.String(deviceInfo.Bootloader),
+		ProcVersion:  proto.String(deviceInfo.ProcVersion),
+		CodeName:     proto.String(deviceInfo.Version.CodeName),
+		Incremental:  proto.String(deviceInfo.Version.Incremental),
+		FingerPrint:  proto.String(deviceInfo.FingerPrint),
+		BootId:       proto.String(deviceInfo.BootId),
+		AndroidId:    proto.String(deviceInfo.AndroidId),
+		BaseBand:     proto.String(deviceInfo.BaseBand),
+		InnerVersion: proto.String(deviceInfo.Version.Incremental),
 	})
 	return TlvEncode(0x52D, data)
 }

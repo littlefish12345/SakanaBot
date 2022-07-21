@@ -247,11 +247,11 @@ func (qqClient *QQClient) BuildHeartBeatPack() ([]byte, uint16) {
 func (qqClient *QQClient) BuildFriendListRequestPack(friendStartIndex uint16, friendListCount uint16, groupStartIndex uint8, groupListCount uint8) ([]byte, uint16) {
 	seqence := qqClient.NextSeqence()
 	D50RequestData, _ := proto.Marshal(goqqprotobuf.D50RequestStruct{
-		AppId:                       1002,
-		RequestMusicSwitch:          1,
-		RequestMutualmarkAlienation: 1,
-		RequestKsingSwitch:          1,
-		RequestMutalmarkLbsShare:    1,
+		AppId:                       proto.Uint64(1002),
+		RequestMusicSwitch:          proto.Uint32(1),
+		RequestMutualmarkAlienation: proto.Uint32(1),
+		RequestKsingSwitch:          proto.Uint32(1),
+		RequestMutalmarkLbsShare:    proto.Uint32(1),
 	})
 	payloadStruct, _ := gojce.Marshal(goqqjce.FriendListRequest{
 		RequestType:     3,
