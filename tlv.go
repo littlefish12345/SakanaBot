@@ -1,4 +1,4 @@
-package FishBot
+package SakanaBot
 
 import (
 	"bytes"
@@ -443,7 +443,7 @@ func TlvType0x536Encode(loginExtraData []byte) []byte {
 }
 
 func TlvType0x52DEncode(deviceInfo *DeviceInfo) []byte {
-	data, _ := proto.Marshal(goqqprotobuf.DeviceInfoBytesStruct{
+	data, _ := proto.Marshal(&goqqprotobuf.DeviceInfoBytesStruct{
 		Bootloader:   proto.String(deviceInfo.Bootloader),
 		ProcVersion:  proto.String(deviceInfo.ProcVersion),
 		CodeName:     proto.String(deviceInfo.Version.CodeName),

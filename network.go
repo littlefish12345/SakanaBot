@@ -1,4 +1,4 @@
-package FishBot
+package SakanaBot
 
 import (
 	"errors"
@@ -79,14 +79,24 @@ func (qqClient *QQClient) PackRecvLoop() {
 			fmt.Println(err)
 			continue
 		}
-		qqClient.ResponsePackLock.Lock()
-		if channel, ok := qqClient.ResponsePackWaitChannelMap[netpackStruct.Seqence]; ok {
-			channel <- netpackStruct
-			delete(qqClient.ResponsePackWaitChannelMap, netpackStruct.Seqence)
+		if netpackStruct.CommandName == "ConfigPushSvc.PushReq" {
+			qqClient.HandleConfigPushRequest(netpackStruct.Body)
+		} else if netpackStruct.CommandName == "ConfigPushSvc.PushDomain" {
+		} else if netpackStruct.CommandName == "MessageSvc.PushNotify" {
+			qqClient.HandlePushNotifyRequest(netpackStruct)
+		} else if netpackStruct.CommandName == "OnlinePush.ReqPush" {
+			qqClient.HandleOnlinePushRequest(netpackStruct)
 		} else {
-			qqClient.ResponsePackNotHandledMap[netpackStruct.Seqence] = netpackStruct
+			qqClient.ResponsePackLock.Lock()
+			fmt.Println(netpackStruct.CommandName)
+			if channel, ok := qqClient.ResponsePackWaitChannelMap[netpackStruct.Seqence]; ok {
+				channel <- netpackStruct
+				delete(qqClient.ResponsePackWaitChannelMap, netpackStruct.Seqence)
+			} else {
+				qqClient.ResponsePackNotHandledMap[netpackStruct.Seqence] = netpackStruct
+			}
+			qqClient.ResponsePackLock.Unlock()
 		}
-		qqClient.ResponsePackLock.Unlock()
 	}
 }
 

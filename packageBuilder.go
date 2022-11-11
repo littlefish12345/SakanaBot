@@ -1,7 +1,8 @@
-package FishBot
+package SakanaBot
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -13,14 +14,18 @@ import (
 )
 
 const (
-	RequestEncryptEMECDH = uint8(0x00)
-	RequestEncryptEMST   = uint8(0x01)
+	RequestEncryptEMECDH uint8 = 0x00
+	RequestEncryptEMST   uint8 = 0x01
 
-	NetpackRequestTypeLogin  = uint32(0x0A)
-	NetpackRequestTypeSimple = uint32(0x0B)
-	NetpackEncryptNoEncrypt  = byte(0x00)
-	NetpackEncryptD2Key      = byte(0x01)
-	NetpackEncryptEmptyKey   = byte(0x02)
+	NetpackRequestTypeLogin  uint32 = 0x0A
+	NetpackRequestTypeSimple uint32 = 0x0B
+	NetpackEncryptNoEncrypt  byte   = 0x00
+	NetpackEncryptD2Key      byte   = 0x01
+	NetpackEncryptEmptyKey   byte   = 0x02
+
+	GetMessageSyncFlagStart    uint32 = 0
+	GetMessageSyncFlagContinue uint32 = 1
+	GetMessageSyncFlagStop     uint32 = 2
 )
 
 func (qqClient *QQClient) BuildRequestPack(uin int64, command uint16, encryptMethod uint8, body []byte) []byte {
@@ -221,7 +226,11 @@ func (qqClient *QQClient) BuildClientRegisterPack() ([]byte, uint16) {
 		DeviceType:   qqClient.Device.Model,
 		OSVersion:    qqClient.Device.Version.Release,
 		OpenPush:     true,
-		LargeSeq:     0,
+		LargeSeq:     1551,
+		OldSsoIp:     0,
+		NewSsoIp:     31806887127679168,
+		ChannelNum:   "",
+		CpId:         0,
 		VendorName:   qqClient.Device.VendorName,
 		VendorOSName: qqClient.Device.VendorOSName,
 		B769Request:  []byte{0x0A, 0x04, 0x08, 0x2E, 0x10, 0x00, 0x0A, 0x05, 0x08, 0x9B, 0x02, 0x10, 0x00},
@@ -246,7 +255,7 @@ func (qqClient *QQClient) BuildHeartBeatPack() ([]byte, uint16) {
 
 func (qqClient *QQClient) BuildFriendListRequestPack(friendStartIndex uint16, friendListCount uint16, groupStartIndex uint8, groupListCount uint8) ([]byte, uint16) {
 	seqence := qqClient.NextSeqence()
-	D50RequestData, _ := proto.Marshal(goqqprotobuf.D50RequestStruct{
+	D50RequestData, _ := proto.Marshal(&goqqprotobuf.D50RequestStruct{
 		AppId:                       proto.Uint64(1002),
 		RequestMusicSwitch:          proto.Uint32(1),
 		RequestMutualmarkAlienation: proto.Uint32(1),
@@ -259,13 +268,13 @@ func (qqClient *QQClient) BuildFriendListRequestPack(friendStartIndex uint16, fr
 		Uin:             qqClient.Uin,
 		StartIndex:      int16(friendStartIndex),
 		FriendCount:     int16(friendListCount),
-		GroupId:         1,
+		GroupId:         0,
 		IfGetGroupInfo:  groupStartIndex > 0,
 		GroupStartIndex: byte(groupStartIndex),
 		GroupCount:      groupListCount,
 		IfGetMsfGroup:   false,
 		IfShowTermType:  true,
-		Version:         31,
+		Version:         27,
 		UinList:         nil,
 		AppType:         0,
 		IfGetDovId:      false,
@@ -293,7 +302,7 @@ func (qqClient *QQClient) BuildGroupListRequestPack(cookie []byte) ([]byte, uint
 		Cookie:            cookie,
 		GroupInfo:         []int64{},
 		GroupFlagExt:      1,
-		Version:           9,
+		Version:           7,
 		CompanyId:         0,
 		VersionNumber:     1,
 		GetLongGroupName:  true,
@@ -307,4 +316,76 @@ func (qqClient *QQClient) BuildGroupListRequestPack(cookie []byte) ([]byte, uint
 	})
 	requestData, _ := requestStruct.Encode()
 	return qqClient.BuildNetworkPack(NetpackRequestTypeSimple, NetpackEncryptD2Key, seqence, qqClient.Uin, "friendlist.GetTroopListReqV2", requestData), seqence
+}
+
+func (qqClient *QQClient) BuildGetMessageRequestPack(syncFlag uint32) ([]byte, uint16) {
+	seqence := qqClient.NextSeqence()
+	fmt.Println(qqClient.SyncCookie == nil)
+	payload, _ := proto.Marshal(&goqqprotobuf.GetMessageRequestStruct{
+		SyncFlag:             proto.Uint32(syncFlag),
+		SyncCookie:           qqClient.SyncCookie,
+		RambleFlag:           proto.Uint32(0),
+		LatestRambleNumber:   proto.Uint32(20),
+		OtherRambleNumber:    proto.Uint32(3),
+		OnlineSyncFlag:       proto.Uint32(1),
+		ContextFlag:          proto.Uint32(1),
+		MessageRequestType:   proto.Uint32(1),
+		PublicAccountCookie:  []byte{},
+		MessageControlBuffer: []byte{},
+		ServerBuffer:         []byte{},
+	})
+	return qqClient.BuildNetworkPack(NetpackRequestTypeSimple, NetpackEncryptD2Key, seqence, qqClient.Uin, "MessageSvc.PbGetMsg", payload), seqence
+}
+
+func (qqClient *QQClient) BuildDeleteMessageRequestPack(deleteMessageList []*goqqprotobuf.MessageItem) ([]byte, uint16) {
+	seqence := qqClient.NextSeqence()
+	payload, _ := proto.Marshal(&goqqprotobuf.DeleteMessageRequestStruct{
+		Item: deleteMessageList,
+	})
+	return qqClient.BuildNetworkPack(NetpackRequestTypeSimple, NetpackEncryptD2Key, seqence, qqClient.Uin, "MessageSvc.PbDeleteMsg", payload), seqence
+}
+
+func (qqClient *QQClient) BuildOnlinePushMessageRequestPack(uin int64, seqence uint16, serverIp int32, pushToken []byte, onlinePushMessageInfoList []*goqqjce.OnlinePushMessageInfoStruct) ([]byte, uint16) {
+	onlinePushMessageInfoBytes := gojce.JceSectionEncodeHeadByte(1, 9)
+	onlinePushMessageInfoBytes = append(onlinePushMessageInfoBytes, gojce.JceSectionInt32ToBytes(0, int32(len(onlinePushMessageInfoList)))...)
+	var jceStruct *gojce.JceStruct
+	var jceStructByte []byte
+	for _, deleteMessageInfo := range onlinePushMessageInfoList {
+		jceStruct, _ = gojce.Marshal(goqqjce.DeleteMessageInfoStruct{
+			FromUin:        deleteMessageInfo.FromUin,
+			MessageSeqence: deleteMessageInfo.MessageSeqqnce,
+			MessageCookies: deleteMessageInfo.MessageCookies,
+			MessageTime:    deleteMessageInfo.MessageTime,
+		})
+		jceStructByte, _ = jceStruct.ToBytes(0)
+		onlinePushMessageInfoBytes = append(onlinePushMessageInfoBytes, jceStructByte...)
+	}
+	payloadStruct, _ := gojce.Marshal(goqqjce.OnlinePushResponseStruct{
+		Uin:         uin,
+		DeleteInfos: jceStructByte,
+		ServerIp:    serverIp,
+		PushToken:   pushToken,
+	})
+	payloadData, _ := payloadStruct.ToBytes(0)
+	requestStruct, _ := gojce.Marshal(goqqjce.RequestPacketStruct{
+		Version:     3,
+		ServantName: "OnlinePush",
+		FuncName:    "SvcRespPushMsg",
+		Buffer:      gojce.JceSectionMapStrBytesToBytes(0, map[string][]byte{"resp": payloadData}),
+	})
+	requestData, _ := requestStruct.Encode()
+	return qqClient.BuildNetworkPack(NetpackRequestTypeSimple, NetpackEncryptD2Key, seqence, qqClient.Uin, "OnlinePush.RespPush", requestData), seqence
+}
+
+func (qqClient *QQClient) BuildConfigPushResponsePack(configType int32, configBytes []byte, configSeqence int64) ([]byte, uint16) {
+	seqence := qqClient.NextSeqence()
+	payloadData := append(gojce.JceSectionInt32ToBytes(0, configType), append(gojce.JceSectionInt64ToBytes(2, configSeqence), gojce.JceSectionBytesToBytes(3, configBytes)...)...)
+	requestStruct, _ := gojce.Marshal(goqqjce.RequestPacketStruct{
+		Version:     3,
+		ServantName: "QQService.ConfigPushSvc.MainServant",
+		FuncName:    "PushResp",
+		Buffer:      gojce.JceSectionMapStrBytesToBytes(0, map[string][]byte{"PushResp": payloadData}),
+	})
+	requestData, _ := requestStruct.Encode()
+	return qqClient.BuildNetworkPack(NetpackRequestTypeSimple, NetpackEncryptD2Key, seqence, qqClient.Uin, "ConfigPushSvc.PushResp", requestData), seqence
 }

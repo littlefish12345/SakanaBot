@@ -1,4 +1,4 @@
-package FishBot
+package SakanaBot
 
 import (
 	"errors"

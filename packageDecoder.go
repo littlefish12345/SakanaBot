@@ -1,4 +1,4 @@
-package FishBot
+package SakanaBot
 
 import (
 	"bytes"
@@ -11,8 +11,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RomiChan/protobuf/proto"
 	gojce "github.com/littlefish12345/go-jce"
 	goqqjce "github.com/littlefish12345/go-qq-jce"
+	goqqprotobuf "github.com/littlefish12345/go-qq-protobuf"
 	goqqtea "github.com/littlefish12345/go-qq-tea"
 )
 
@@ -246,4 +248,10 @@ func (qqClient *QQClient) DecodeGroupListResponse(data []byte) ([]*goqqjce.Troop
 		returnTroopNumList = append(returnTroopNumList, troopNum)
 	}
 	return returnTroopNumList, cookie
+}
+
+func (qqClient *QQClient) DecodeGetMessageRequestPack(data []byte) {
+	responseStruct := &goqqprotobuf.GetMessageResponseStruct{}
+	proto.Unmarshal(data, responseStruct)
+	qqClient.SyncMessage(responseStruct)
 }

@@ -1,8 +1,9 @@
-package FishBot
+package SakanaBot
 
 import (
 	"bytes"
 	"crypto/md5"
+	"fmt"
 	"time"
 
 	goqqtea "github.com/littlefish12345/go-qq-tea"
@@ -30,6 +31,7 @@ func (qqClient *QQClient) Login(method uint16) (*LoginResponse, error) {
 
 func (qqClient *QQClient) RequestSMSCode() bool {
 	netpack := qqClient.RecvPack(qqClient.SendPack(qqClient.BuildLoginSMSRequestPack()))
+	fmt.Println(qqClient.DecodeLoginResponseNetworkPack(netpack).Error)
 	return qqClient.DecodeLoginResponseNetworkPack(netpack).Error == LoginResponseNeedSMS
 }
 

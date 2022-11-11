@@ -1,11 +1,11 @@
-package FishBot
+package SakanaBot
 
 var (
-	AndroidPad = Protocol{
+	IPad = Protocol{
 		ApkId:      "com.tencent.minihd.qq",
 		AppId:      16,
-		SubAppId:   537065739,
-		Version:    "5.8.9",
+		SubAppId:   537097188,
+		Version:    "8.8.35",
 		ApkSign:    []byte{0xAA, 0x39, 0x78, 0xE0, 0x1F, 0xD9, 0x6F, 0xF9, 0x91, 0x4A, 0x66, 0x9E, 0x18, 0x64, 0x74, 0xC7},
 		BuildTime:  1595836208,
 		SdkVersion: "6.0.0.2433",
@@ -13,10 +13,10 @@ var (
 		Bitmap:     150470524,
 		MainSigmap: 1970400,
 		SubSigmap:  0x10400,
-		Name:       "AndroidPad",
+		Name:       "IPad",
 	}
 	ProtocolMap = map[string]*Protocol{
-		"AndroidPad": &AndroidPad,
+		"IPad": &IPad,
 	}
 )
 

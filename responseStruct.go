@@ -1,4 +1,4 @@
-package FishBot
+package SakanaBot
 
 const (
 	LoginResponseNeedSlider    uint16 = 1

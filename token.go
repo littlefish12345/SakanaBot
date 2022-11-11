@@ -1,4 +1,4 @@
-package FishBot
+package SakanaBot
 
 type Token struct {
 	TlvType0x104Data []byte
